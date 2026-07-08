@@ -299,7 +299,7 @@ if isinstance(preview_df, pd.DataFrame) and not preview_df.empty:
 
             def resolve_tow(supp_code: str) -> Optional[str]:
                 s = str(supp_code)
-                return lookup.get((vparam, s)) or lookup.get(("", s)) or None
+                return lookup.get((vparam, s)) or lookup.get(("", s)) or lookup.get(("GLOBAL", s)) or None
 
             df_out = df_sup.copy()
             df_out["tow"] = df_out["supplier_id"].map(resolve_tow)
