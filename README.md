@@ -1,31 +1,39 @@
-# Supplier → TOW Mapper (Cloud DB)
+# Supplier to TOW Mapper
 
-Map supplier invoice product codes to internal **TOW** codes using a **persistent PostgreSQL (Neon)** database.  
-All inserts/updates survive Streamlit restarts.
+Map supplier invoice product codes to internal TOW codes using a persistent PostgreSQL database on Neon.
 
----
+## Original mapper app
 
-## 🔧 Setup (local)
+Run:
 
 ```cmd
-cd C:\Users\mkozi\OneDrive\Desktop\tow-mapper-cloud
-py -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+Secrets:
+
+```toml
+DATABASE_URL = "your_original_tow_mapper_neon_connection_string"
+ADMIN_PIN = "your_admin_pin"
+```
 
 ## Greece admin app
 
-This duplicate repository also includes `gr_admin_app.py`, a separate Streamlit admin app for Greece colleagues.
+This repository also includes `gr_admin_app.py`, a separate Streamlit admin app for Greece colleagues.
 
-It connects to the same Neon database using:
-
-- `DATABASE_URL`
-- `ADMIN_PIN`
-
-Run locally:
+Run:
 
 ```cmd
 streamlit run gr_admin_app.py
+```
+
+Use a separate Neon branch for this app. Do not point it at the original Tow Mapper branch.
+
+Secrets:
+
+```toml
+GR_DATABASE_URL = "your_gr_neon_branch_connection_string"
+ADMIN_PIN = "your_admin_pin"
 ```
 
 Main features:
@@ -35,3 +43,8 @@ Main features:
 - Bulk import CSV/Excel mappings
 - Export mappings
 - Edit vendor names
+
+The Greece app creates these tables on its configured Neon branch if they do not exist:
+
+- `crosswalk`
+- `vendors`

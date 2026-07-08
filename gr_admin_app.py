@@ -15,9 +15,9 @@ st.set_page_config(page_title="GR TOW Mapper Admin", layout="wide")
 
 @st.cache_resource(show_spinner=False)
 def get_engine() -> Engine:
-    db_url = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL", "")
+    db_url = os.getenv("GR_DATABASE_URL") or st.secrets.get("GR_DATABASE_URL", "")
     if not db_url:
-        st.error("DATABASE_URL is not configured in Streamlit secrets or environment.")
+        st.error("GR_DATABASE_URL is not configured in Streamlit secrets or environment.")
         st.stop()
     return create_engine(db_url, pool_pre_ping=True)
 
