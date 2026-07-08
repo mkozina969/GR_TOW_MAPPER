@@ -26,7 +26,7 @@ with engine.begin() as conn:
         CREATE TABLE IF NOT EXISTS crosswalk (
             tow_code    TEXT NOT NULL,
             supplier_id TEXT NOT NULL,
-            vendor_id   TEXT
+            vendor_id   TEXT NOT NULL DEFAULT 'GLOBAL'
         )
     """))
     conn.execute(text("""
@@ -89,7 +89,7 @@ out = pd.DataFrame({
 })
 
 # Normalize blanks → NULL for vendor_id
-out["vendor_id"] = out["vendor_id"].apply(lambda x: None if x == "" else x)
+out["vendor_id"] = out["vendor_id"].apply(lambda x: "GLOBAL" if x == "" else x)
 out = out.drop_duplicates(subset=["vendor_id", "supplier_id"], keep="last")
 
 # -----------------------------------------------------------------------------
