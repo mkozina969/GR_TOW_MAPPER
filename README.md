@@ -2,7 +2,7 @@
 
 Map supplier invoice product codes to internal TOW codes using a persistent PostgreSQL database on Neon.
 
-## Original mapper app
+## Greece admin app
 
 Run:
 
@@ -10,29 +10,14 @@ Run:
 streamlit run streamlit_app.py
 ```
 
-Secrets:
+This is the default Streamlit Cloud entry point and opens `gr_admin_app.py`.
 
-```toml
-DATABASE_URL = "your_original_tow_mapper_neon_connection_string"
-ADMIN_PIN = "your_admin_pin"
-```
-
-## Greece admin app
-
-This repository also includes `gr_admin_app.py`, a separate Streamlit admin app for Greece colleagues.
-
-Run:
-
-```cmd
-streamlit run gr_admin_app.py
-```
-
-Use a separate Neon branch for this app. Do not point it at the original Tow Mapper branch.
+Use a separate Neon project for this app. Do not point it at the original Tow Mapper database.
 
 Secrets:
 
 ```toml
-GR_DATABASE_URL = "your_gr_neon_branch_connection_string"
+GR_DATABASE_URL = "your_gr_neon_project_connection_string"
 ADMIN_PIN = "your_admin_pin"
 ```
 
@@ -44,7 +29,24 @@ Main features:
 - Export mappings
 - Edit vendor names
 
-The Greece app creates these tables on its configured Neon branch if they do not exist:
+The Greece app creates these tables on its configured Neon project if they do not exist:
 
 - `crosswalk`
 - `vendors`
+
+## Original mapper app
+
+The original duplicated mapper is preserved as `tow_mapper_app.py`.
+
+Run locally only if needed:
+
+```cmd
+streamlit run tow_mapper_app.py
+```
+
+Secrets:
+
+```toml
+DATABASE_URL = "your_original_tow_mapper_neon_connection_string"
+ADMIN_PIN = "your_admin_pin"
+```
