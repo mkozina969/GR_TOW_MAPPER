@@ -621,13 +621,11 @@ else:
 st.markdown("### Live search / inspect")
 
 with st.form("live_search_form"):
-    c_f1, c_f2, c_f3 = st.columns([2.2, 2.2, 1.2])
+    c_f1, c_f2 = st.columns([1.4, 2.6])
     with c_f1:
         vendor_filter_live = st.text_input("vendor_id filter (blank = ALL)", value=st.session_state.get("ls_vendor", ""))
     with c_f2:
-        supp_filter_live = st.text_input("supplier_id search", value=st.session_state.get("ls_supplier", ""))
-    with c_f3:
-        exact = st.checkbox("Exact supplier match", value=st.session_state.get("ls_exact", True))
+        supp_filter_live = st.text_input("supplier_id exact search", value=st.session_state.get("ls_supplier", ""))
 
     c_search, c_clear = st.columns([1, 4])
     with c_search:
@@ -638,15 +636,12 @@ with st.form("live_search_form"):
 if clear_clicked:
     st.session_state["ls_vendor"] = ""
     st.session_state["ls_supplier"] = ""
-    st.session_state["ls_exact"] = True
     st.session_state.pop("live_search_results", None)
     st.rerun()
 
 if search_clicked:
     st.session_state["ls_vendor"] = vendor_filter_live
     st.session_state["ls_supplier"] = supp_filter_live
-    st.session_state["ls_exact"] = exact
-
     clauses, params = [], {}
     vendor_filter_live = vendor_filter_live.strip()
     supp_filter_live = supp_filter_live.strip()
@@ -654,24 +649,23 @@ if search_clicked:
         clauses.append("c.vendor_id = :v1")
         params["v1"] = vendor_filter_live.upper()
     if supp_filter_live != "":
-        if exact:
-            clauses.append("c.supplier_id = :s1")
-            params["s1"] = supp_filter_live.upper()
-        elif len(supp_filter_live) >= 4:
-            clauses.append("c.supplier_id ILIKE :s1")
-            params["s1"] = f"%{supp_filter_live}%"
-        else:
-            st.warning("For contains search, enter at least 4 characters or use exact match.")
+        clauses.append("c.supplier_id = :s1")
+        params["s1"] = supp_filter_live.upper()
 
-    if clauses or (vendor_filter_live == "" and supp_filter_live == ""):
-        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    if not clauses:
+        st.warning("Enter vendor_id or supplier_id before searching.")
+    else:
+        where = " WHERE " + " AND ".join(clauses)
         q = f"""
-            SELECT c.vendor_id, v.vendor_name, c.supplier_id, c.tow_code
-            FROM crosswalk c
-            LEFT JOIN vendors v ON v.vendor_id = c.vendor_id
-            {where}
-            ORDER BY c.vendor_id, c.supplier_id
-            LIMIT 500
+            WITH hits AS (
+                SELECT vendor_id, supplier_id, tow_code
+                FROM crosswalk c
+                {where}
+                LIMIT 100
+            )
+            SELECT h.vendor_id, v.vendor_name, h.supplier_id, h.tow_code
+            FROM hits h
+            LEFT JOIN vendors v ON v.vendor_id = h.vendor_id
         """
 
         try:
