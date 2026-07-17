@@ -82,6 +82,20 @@ try:
         ON crosswalk USING gin (tow_code gin_trgm_ops)
         """
     )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier_upper_trgm
+        ON crosswalk USING gin (upper(supplier_id) gin_trgm_ops)
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier_upper_prefix
+        ON crosswalk (upper(supplier_id) text_pattern_ops)
+        """
+    )
+    cur.execute("ANALYZE crosswalk")
+    cur.execute("ANALYZE vendors")
 
     conn.commit()
     print("Neon indexes and constraints are ready.")

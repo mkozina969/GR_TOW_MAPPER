@@ -618,6 +618,164 @@ if "updates_df" in st.session_state and not st.session_state["updates_df"].empty
 else:
     st.caption("No updates.csv yet.")
 
+st.markdown("### Live search / inspect")
+
+c_f1, c_f2, c_f3 = st.columns([2.2, 2.2, 1.2])
+with c_f1:
+    vendor_filter_live = st.text_input("vendor_id filter (blank = ALL)", value=st.session_state.get("ls_vendor", ""), key="ls_vendor_auto")
+with c_f2:
+    supp_filter_live = st.text_input("supplier_id search (exact or contains)", value=st.session_state.get("ls_supplier", ""), key="ls_supplier_auto")
+with c_f3:
+    exact = st.checkbox("Exact supplier match", value=st.session_state.get("ls_exact", False), key="ls_exact_auto")
+
+st.session_state["ls_vendor"] = vendor_filter_live
+st.session_state["ls_supplier"] = supp_filter_live
+st.session_state["ls_exact"] = exact
+
+clauses, params = [], {}
+vendor_filter_live = vendor_filter_live.strip().upper()
+supp_filter_live = supp_filter_live.strip().upper()
+
+if vendor_filter_live:
+    clauses.append("c.vendor_id = :v1")
+    params["v1"] = vendor_filter_live
+
+if supp_filter_live:
+    if exact:
+        clauses.append("c.supplier_id = :s1")
+        params["s1"] = supp_filter_live
+    elif len(supp_filter_live) >= 3:
+        clauses.append("upper(c.supplier_id) LIKE :s1")
+        params["s1"] = f"%{supp_filter_live}%"
+    else:
+        st.info("Type at least 3 characters for contains search.")
+
+where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+q = f"""
+    SELECT c.vendor_id, v.vendor_name, c.supplier_id, c.tow_code
+    FROM crosswalk c
+    LEFT JOIN vendors v ON v.vendor_id = c.vendor_id
+    {where}
+    ORDER BY c.vendor_id, c.supplier_id
+    LIMIT 500
+"""
+
+try:
+    df_res = _read_sql(q, params)
+    st.caption(f"500 results shown (max 500) - shown: {len(df_res):,}")
+    st.dataframe(df_res, use_container_width=True, height=260)
+
+    st.markdown("##### Pick row as prefill")
+    c_idx, c_btn = st.columns([1, 2])
+    with c_idx:
+        idx = st.number_input(" ", min_value=0, max_value=max(len(df_res) - 1, 0), value=0, step=1, label_visibility="collapsed", key="prefill_idx_auto")
+    with c_btn:
+        if st.button("Prefill Admin form from row", key="btn_prefill_auto"):
+            if not df_res.empty:
+                row = df_res.iloc[int(idx)]
+                st.session_state["vendor_prefill"] = str(row.get("vendor_id", "") or "")
+                st.session_state["supplier_prefill"] = str(row.get("supplier_id", "") or "")
+                st.session_state["tow_prefill"] = str(row.get("tow_code", "") or "")
+                st.success("Prefilled - scroll up to 'Add a single mapping'.")
+except Exception as e:
+    st.error(f"Search failed: {e}")
+
+st.stop()
+
+with st.form("live_search_v2_form"):
+    c_f1, c_f2, c_f3 = st.columns([1.3, 2.0, 1.0])
+    with c_f1:
+        vendor_filter_live = st.text_input("vendor_id filter (blank = ALL)", value=st.session_state.get("ls_vendor", ""))
+    with c_f2:
+        supp_filter_live = st.text_input("supplier_id search", value=st.session_state.get("ls_supplier", ""))
+    with c_f3:
+        search_mode = st.selectbox(
+            "Match",
+            options=["Exact", "Starts with", "Contains"],
+            index=0,
+            key="ls_mode",
+        )
+
+    c_search, c_clear = st.columns([1, 4])
+    with c_search:
+        search_clicked = st.form_submit_button("Search", type="primary")
+    with c_clear:
+        clear_clicked = st.form_submit_button("Clear results")
+
+if clear_clicked:
+    for key in ["ls_vendor", "ls_supplier", "live_search_results"]:
+        st.session_state.pop(key, None)
+    st.rerun()
+
+if search_clicked:
+    vendor_filter_live = vendor_filter_live.strip().upper()
+    supp_filter_live = supp_filter_live.strip().upper()
+    st.session_state["ls_vendor"] = vendor_filter_live
+    st.session_state["ls_supplier"] = supp_filter_live
+
+    clauses, params = [], {}
+    if vendor_filter_live:
+        clauses.append("c.vendor_id = :vendor_id")
+        params["vendor_id"] = vendor_filter_live
+
+    if supp_filter_live:
+        if search_mode == "Exact":
+            clauses.append("c.supplier_id = :supplier_id")
+            params["supplier_id"] = supp_filter_live
+        elif search_mode == "Starts with":
+            clauses.append("upper(c.supplier_id) LIKE :supplier_like")
+            params["supplier_like"] = f"{supp_filter_live}%"
+        else:
+            if len(supp_filter_live) < 4:
+                st.warning("Contains search needs at least 4 characters.")
+            else:
+                clauses.append("upper(c.supplier_id) LIKE :supplier_like")
+                params["supplier_like"] = f"%{supp_filter_live}%"
+
+    if not clauses:
+        st.warning("Enter vendor_id or supplier_id before searching.")
+    else:
+        where = " WHERE " + " AND ".join(clauses)
+        query = f"""
+            WITH hits AS (
+                SELECT c.vendor_id, c.supplier_id, c.tow_code
+                FROM crosswalk c
+                {where}
+                ORDER BY c.vendor_id, c.supplier_id
+                LIMIT 500
+            )
+            SELECT h.vendor_id, COALESCE(v.vendor_name, '') AS vendor_name, h.supplier_id, h.tow_code
+            FROM hits h
+            LEFT JOIN vendors v ON v.vendor_id = h.vendor_id
+        """
+        try:
+            st.session_state["live_search_results"] = _read_sql(query, params)
+        except Exception as e:
+            st.session_state.pop("live_search_results", None)
+            st.error(f"Search failed: {e}")
+
+df_res = st.session_state.get("live_search_results")
+if isinstance(df_res, pd.DataFrame):
+    st.caption(f"500 results shown (max 500) - shown: {len(df_res):,}")
+    st.dataframe(df_res, use_container_width=True, height=260)
+
+    st.markdown("##### Pick row as prefill")
+    c_idx, c_btn = st.columns([1, 2])
+    with c_idx:
+        idx = st.number_input(" ", min_value=0, max_value=max(len(df_res) - 1, 0), value=0, step=1, label_visibility="collapsed")
+    with c_btn:
+        if st.button("Prefill Admin form from row", key="btn_prefill_v2"):
+            if not df_res.empty:
+                row = df_res.iloc[int(idx)]
+                st.session_state["vendor_prefill"] = str(row.get("vendor_id", "") or "")
+                st.session_state["supplier_prefill"] = str(row.get("supplier_id", "") or "")
+                st.session_state["tow_prefill"] = str(row.get("tow_code", "") or "")
+                st.success("Prefilled - scroll up to 'Add a single mapping'.")
+else:
+    st.info("Enter filters and press Search.")
+
+st.stop()
+
 st.markdown("### Supplier lookup")
 
 with st.form("supplier_lookup_form"):
