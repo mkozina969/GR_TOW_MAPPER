@@ -37,8 +37,11 @@ def _fetch_vendors(filter_q: str = "", limit: int = 500) -> List[str]:
     if filter_q:
         q = """
             SELECT DISTINCT vendor_id
-            FROM crosswalk
-            WHERE vendor_id IS NOT NULL AND vendor_id ILIKE :like
+            FROM vendors
+            WHERE vendor_id IS NOT NULL
+              AND trim(vendor_id) <> ''
+              AND upper(trim(vendor_id)) NOT IN ('#NA', 'N/A', 'NA', 'NULL', 'NONE')
+              AND vendor_id ILIKE :like
             ORDER BY vendor_id
             LIMIT :lim
         """
@@ -46,13 +49,18 @@ def _fetch_vendors(filter_q: str = "", limit: int = 500) -> List[str]:
     else:
         q = """
             SELECT DISTINCT vendor_id
-            FROM crosswalk
+            FROM vendors
             WHERE vendor_id IS NOT NULL
+              AND trim(vendor_id) <> ''
+              AND upper(trim(vendor_id)) NOT IN ('#NA', 'N/A', 'NA', 'NULL', 'NONE')
             ORDER BY vendor_id
             LIMIT :lim
         """
         params = {"lim": limit}
-    df = _read_sql(q, params)
+    try:
+        df = _read_sql(q, params)
+    except Exception:
+        df = pd.DataFrame({"vendor_id": []})
     vals = [str(x or "") for x in df["vendor_id"].tolist()]
     if "" not in vals:
         vals.insert(0, "")
@@ -287,7 +295,7 @@ if isinstance(preview_df, pd.DataFrame) and not preview_df.empty:
                 df_map = _read_sql("""
                     SELECT vendor_id, supplier_id, tow_code
                     FROM crosswalk
-                    WHERE vendor_id = :v OR vendor_id = ''
+                    WHERE vendor_id = :v OR vendor_id = '' OR vendor_id = 'GLOBAL'
                 """, {"v": vparam})
             else:
                 df_map = _read_sql("""
