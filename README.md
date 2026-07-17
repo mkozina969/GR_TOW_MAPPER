@@ -87,3 +87,5 @@ Ensure indexes/constraints exist in GR Neon:
 ```cmd
 py ensure_neon_indexes.py --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmode=require"
 ```
+
+This also creates trigram indexes for fast contains search on `supplier_id` and `tow_code`.

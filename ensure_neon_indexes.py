@@ -12,6 +12,8 @@ conn.autocommit = False
 cur = conn.cursor()
 
 try:
+    cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS vendors (
@@ -66,6 +68,18 @@ try:
         """
         CREATE INDEX IF NOT EXISTS ix_vendors_vendor_name
         ON vendors (vendor_name)
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier_trgm
+        ON crosswalk USING gin (supplier_id gin_trgm_ops)
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS ix_crosswalk_tow_code_trgm
+        ON crosswalk USING gin (tow_code gin_trgm_ops)
         """
     )
 

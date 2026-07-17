@@ -98,7 +98,34 @@ engine = _engine()
 
 def _read_sql(query: str, params: dict | None = None) -> pd.DataFrame:
     with engine.connect() as conn:
+        conn.execute(text("SET statement_timeout = '15s'"))
         return pd.read_sql(text(query), conn, params=params or {})
+
+@st.cache_resource(show_spinner=False)
+def _ensure_search_indexes() -> None:
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        conn.execute(text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS ix_crosswalk_vendor_supplier
+            ON crosswalk (vendor_id, supplier_id)
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier ON crosswalk (supplier_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_crosswalk_vendor ON crosswalk (vendor_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_vendors_vendor_name ON vendors (vendor_name)"))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier_trgm
+            ON crosswalk USING gin (supplier_id gin_trgm_ops)
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_crosswalk_tow_code_trgm
+            ON crosswalk USING gin (tow_code gin_trgm_ops)
+        """))
+
+try:
+    _ensure_search_indexes()
+except Exception as e:
+    if st.session_state.get("_debug", False):
+        st.warning(f"Search index setup skipped: {e}")
 
 # =============================================================================
 # Drag-and-drop Columns Editor with "Apply" flag (streamlit-sortables)
