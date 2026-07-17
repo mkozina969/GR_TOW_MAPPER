@@ -101,32 +101,6 @@ def _read_sql(query: str, params: dict | None = None) -> pd.DataFrame:
         conn.execute(text("SET statement_timeout = '15s'"))
         return pd.read_sql(text(query), conn, params=params or {})
 
-@st.cache_resource(show_spinner=False)
-def _ensure_search_indexes() -> None:
-    with engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
-        conn.execute(text("""
-            CREATE UNIQUE INDEX IF NOT EXISTS ix_crosswalk_vendor_supplier
-            ON crosswalk (vendor_id, supplier_id)
-        """))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier ON crosswalk (supplier_id)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_crosswalk_vendor ON crosswalk (vendor_id)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_vendors_vendor_name ON vendors (vendor_name)"))
-        conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier_trgm
-            ON crosswalk USING gin (supplier_id gin_trgm_ops)
-        """))
-        conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS ix_crosswalk_tow_code_trgm
-            ON crosswalk USING gin (tow_code gin_trgm_ops)
-        """))
-
-try:
-    _ensure_search_indexes()
-except Exception as e:
-    if st.session_state.get("_debug", False):
-        st.warning(f"Search index setup skipped: {e}")
-
 # =============================================================================
 # Drag-and-drop Columns Editor with "Apply" flag (streamlit-sortables)
 # =============================================================================
@@ -651,9 +625,9 @@ with st.form("live_search_form"):
     with c_f1:
         vendor_filter_live = st.text_input("vendor_id filter (blank = ALL)", value=st.session_state.get("ls_vendor", ""))
     with c_f2:
-        supp_filter_live = st.text_input("supplier_id search (exact or contains)", value=st.session_state.get("ls_supplier", ""))
+        supp_filter_live = st.text_input("supplier_id search", value=st.session_state.get("ls_supplier", ""))
     with c_f3:
-        exact = st.checkbox("Exact supplier match", value=st.session_state.get("ls_exact", False))
+        exact = st.checkbox("Exact supplier match", value=st.session_state.get("ls_exact", True))
 
     c_search, c_clear = st.columns([1, 4])
     with c_search:
@@ -664,7 +638,7 @@ with st.form("live_search_form"):
 if clear_clicked:
     st.session_state["ls_vendor"] = ""
     st.session_state["ls_supplier"] = ""
-    st.session_state["ls_exact"] = False
+    st.session_state["ls_exact"] = True
     st.session_state.pop("live_search_results", None)
     st.rerun()
 
@@ -683,11 +657,11 @@ if search_clicked:
         if exact:
             clauses.append("c.supplier_id = :s1")
             params["s1"] = supp_filter_live.upper()
-        elif len(supp_filter_live) >= 2:
+        elif len(supp_filter_live) >= 4:
             clauses.append("c.supplier_id ILIKE :s1")
             params["s1"] = f"%{supp_filter_live}%"
         else:
-            st.warning("Enter at least 2 characters for contains search, or use exact match.")
+            st.warning("For contains search, enter at least 4 characters or use exact match.")
 
     if clauses or (vendor_filter_live == "" and supp_filter_live == ""):
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
