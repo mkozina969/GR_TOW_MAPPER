@@ -71,3 +71,9 @@ py migrate_csv_to_db.py --csv exports\crosswalk.csv --db "postgresql+psycopg2://
 ```
 
 You can also upload `exports\crosswalk.csv` in the GR Streamlit app under `Import / Export`.
+
+Import vendors into the GR Neon database:
+
+```cmd
+py bulk_copy_vendors_to_neon.py --csv "..\vendors.csv" --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmode=require" --rebuild --sep auto
+```
