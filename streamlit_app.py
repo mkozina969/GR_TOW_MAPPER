@@ -1,3 +1,3 @@
-"""Streamlit Cloud entry point for the Greece admin app."""
+"""Streamlit Cloud entry point for the Greece invoice mapper."""
 
-from gr_admin_app import *  # noqa: F401,F403
+from gr_mapper_app import *  # noqa: F401,F403
