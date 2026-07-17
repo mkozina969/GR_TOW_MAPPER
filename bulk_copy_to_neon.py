@@ -97,14 +97,31 @@ try:
             buf
         )
 
-    # Normalize + upsert
+    # Normalize + deduplicate + upsert.
+    # If the CSV contains the same vendor_id + supplier_id more than once,
+    # PostgreSQL cannot update that target row twice in one INSERT statement.
+    # DISTINCT ON keeps the last copied row for each mapping key.
     cur.execute("""
         INSERT INTO crosswalk (tow_code, supplier_id, vendor_id)
-SELECT
-  trim(tow_code),
-  upper(trim(supplier_id)),
-  COALESCE(NULLIF(upper(trim(vendor_id)), ''), 'GLOBAL')  -- <-- force GLOBAL for blank/NULL
-FROM crosswalk_stage
+SELECT tow_code, supplier_id, vendor_id
+FROM (
+  SELECT DISTINCT ON (vendor_id_norm, supplier_id_norm)
+    trim(tow_code) AS tow_code,
+    supplier_id_norm AS supplier_id,
+    vendor_id_norm AS vendor_id,
+    stage_id
+  FROM (
+    SELECT
+      ctid AS stage_id,
+      tow_code,
+      upper(trim(supplier_id)) AS supplier_id_norm,
+      COALESCE(NULLIF(upper(trim(vendor_id)), ''), 'GLOBAL') AS vendor_id_norm
+    FROM crosswalk_stage
+    WHERE trim(COALESCE(supplier_id, '')) <> ''
+      AND trim(COALESCE(tow_code, '')) <> ''
+  ) normalized
+  ORDER BY vendor_id_norm, supplier_id_norm, stage_id DESC
+) deduped
 ON CONFLICT (vendor_id, supplier_id)
 DO UPDATE SET tow_code = EXCLUDED.tow_code;
 
