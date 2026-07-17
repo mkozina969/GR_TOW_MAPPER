@@ -618,6 +618,53 @@ if "updates_df" in st.session_state and not st.session_state["updates_df"].empty
 else:
     st.caption("No updates.csv yet.")
 
+st.markdown("### Supplier lookup")
+
+with st.form("supplier_lookup_form"):
+    c_lookup1, c_lookup2 = st.columns([1, 2])
+    with c_lookup1:
+        lookup_vendor = st.text_input("vendor_id optional", value="")
+    with c_lookup2:
+        lookup_supplier = st.text_input("supplier_id exact", value="")
+    lookup_clicked = st.form_submit_button("Lookup", type="primary")
+
+if lookup_clicked:
+    supplier = lookup_supplier.strip().upper()
+    vendor_lookup = lookup_vendor.strip().upper()
+    if not supplier:
+        st.warning("Enter supplier_id before lookup.")
+    else:
+        params = {"supplier_id": supplier}
+        vendor_clause = ""
+        if vendor_lookup:
+            vendor_clause = "AND c.vendor_id = :vendor_id"
+            params["vendor_id"] = vendor_lookup
+        try:
+            df_lookup = _read_sql(
+                f"""
+                SELECT
+                    c.vendor_id,
+                    COALESCE(v.vendor_name, '') AS vendor_name,
+                    c.supplier_id,
+                    c.tow_code
+                FROM crosswalk c
+                LEFT JOIN vendors v ON v.vendor_id = c.vendor_id
+                WHERE c.supplier_id = :supplier_id
+                {vendor_clause}
+                LIMIT 50
+                """,
+                params,
+            )
+            if df_lookup.empty:
+                st.info("No mapping found.")
+            else:
+                st.caption(f"Found {len(df_lookup):,} result(s).")
+                st.table(df_lookup)
+        except Exception as e:
+            st.error(f"Lookup failed: {e}")
+
+st.stop()
+
 st.markdown("### Live search / inspect")
 
 with st.form("live_search_form"):
