@@ -150,6 +150,9 @@ def columns_sortable_with_apply(preferred_order: List[str]) -> Optional[List[str
 
     sorted_selected = [c for c in sorted_cols if c in selected]
     st.session_state["pending_export_cols"] = sorted_selected
+    if sorted_selected:
+        st.session_state["export_cols"] = sorted_selected.copy()
+        st.session_state["columns_applied"] = True
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -164,10 +167,7 @@ def columns_sortable_with_apply(preferred_order: List[str]) -> Optional[List[str
             st.session_state["export_cols"] = st.session_state["pending_export_cols"].copy()
             st.session_state["columns_applied"] = True
 
-    if st.session_state["columns_applied"]:
-        return st.session_state["export_cols"]
-    else:
-        return None
+    return st.session_state["export_cols"]
 
 # =============================================================================
 # Main Script Starts Here (NO CACHING)
@@ -498,7 +498,7 @@ if st.session_state.get("mapped_ready", False):
             key="dl_both_custom",
         )
     else:
-        st.info("Select columns, drag to reorder, and press 'Apply changes' to update preview/export.")
+        st.info("Select at least one export column to show preview/export.")
 else:
     st.info("Učitaj datoteku i pokreni mapping.")
 
