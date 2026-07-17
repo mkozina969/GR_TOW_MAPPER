@@ -70,6 +70,9 @@ def ensure_schema() -> None:
         ON crosswalk (vendor_id, supplier_id)
         """
     )
+    execute_sql("CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier ON crosswalk (supplier_id)")
+    execute_sql("CREATE INDEX IF NOT EXISTS ix_crosswalk_tow_code ON crosswalk (tow_code)")
+    execute_sql("CREATE INDEX IF NOT EXISTS ix_crosswalk_vendor ON crosswalk (vendor_id)")
     execute_sql(
         """
         CREATE TABLE IF NOT EXISTS vendors (
@@ -78,6 +81,7 @@ def ensure_schema() -> None:
         )
         """
     )
+    execute_sql("CREATE INDEX IF NOT EXISTS ix_vendors_vendor_name ON vendors (vendor_name)")
 
 
 def to_excel_bytes(sheets: Dict[str, pd.DataFrame]) -> bytes:

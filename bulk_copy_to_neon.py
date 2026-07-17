@@ -46,6 +46,9 @@ try:
         CREATE UNIQUE INDEX IF NOT EXISTS ix_crosswalk_vendor_supplier
         ON crosswalk (vendor_id, supplier_id)
     """)
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_crosswalk_supplier ON crosswalk (supplier_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_crosswalk_tow_code ON crosswalk (tow_code)")
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_crosswalk_vendor ON crosswalk (vendor_id)")
 
     # staging
     cur.execute("DROP TABLE IF EXISTS crosswalk_stage")

@@ -46,6 +46,7 @@ try:
         )
         """
     )
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_vendors_vendor_name ON vendors (vendor_name)")
 
     cur.execute("DROP TABLE IF EXISTS vendors_stage")
     cur.execute(

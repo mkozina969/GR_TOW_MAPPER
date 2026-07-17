@@ -81,3 +81,9 @@ Import vendors into the GR Neon database:
 ```cmd
 py bulk_copy_vendors_to_neon.py --csv "..\vendors.csv" --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmode=require" --rebuild --sep auto
 ```
+
+Ensure indexes/constraints exist in GR Neon:
+
+```cmd
+py ensure_neon_indexes.py --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmode=require"
+```
