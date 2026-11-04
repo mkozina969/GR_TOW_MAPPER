@@ -31,16 +31,13 @@ Main features:
 - Search and edit `crosswalk` mappings
 - Add or update single mappings
 - Bulk import CSV/Excel mappings
-- Export mappings
-- Edit vendor names
-
-The database editor is available as the `Admin Database` page in Streamlit navigation.
+Use the PIN-protected Admin section on the main mapper page to manage mappings and conversion rules.
 
 Exports download directly to the browser. There is no Download Center or Neon Object Storage configuration.
 
 Before release, initialize the conversion table on the **GR Neon database** by running [the additive migration](migrations/001_item_uom_conversion.sql). Alternatively, after deploying, unlock the mapper's Admin section and click **Initialize UoM table** before running any invoice mapping. The migration creates an empty rules table and does not change existing vendors or mappings. See [packaging conversion](UOM_SETUP.md) and [bulk imports](BULK_IMPORT.md).
 
-The GR Admin Database page initializes these tables if they do not exist:
+The GR mapper uses these existing tables:
 
 - `crosswalk`
 - `vendors`
@@ -96,3 +93,4 @@ py ensure_neon_indexes.py --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmod
 ```
 
 This also creates trigram indexes for fast contains search on `supplier_id` and `tow_code`.
+
