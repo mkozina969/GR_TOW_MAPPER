@@ -219,8 +219,8 @@ def require_admin_pin() -> None:
     st.stop()
 
 
-ensure_schema()
 require_admin_pin()
+ensure_schema()
 
 st.title("GR TOW Mapper Admin")
 st.caption("Edit Neon database mappings for Greece without touching the invoice mapping workflow.")

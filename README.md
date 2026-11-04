@@ -24,7 +24,10 @@ ADMIN_PIN = "your_admin_pin"
 Main features:
 
 - Upload supplier invoices and map supplier codes to TOW codes
-- Export matched/unmatched results
+- Download standard or custom Excel, Pallets PRN (20/30/50), Regular PRN (10/15/15), and Navision Portal CSV
+- Set filenames for custom Excel, PRN, and Portal CSV downloads
+- Apply vendor-specific packaging conversions and review the conversion audit
+- Preview and import mapping and conversion batches from XLSX or CSV in the PIN-protected mapper admin
 - Search and edit `crosswalk` mappings
 - Add or update single mappings
 - Bulk import CSV/Excel mappings
@@ -33,7 +36,11 @@ Main features:
 
 The database editor is available as the `Admin Database` page in Streamlit navigation.
 
-The Greece app creates these tables on its configured Neon project if they do not exist:
+Exports download directly to the browser. There is no Download Center or Neon Object Storage configuration.
+
+Before release, initialize the conversion table on the **GR Neon database** by running [the additive migration](migrations/001_item_uom_conversion.sql). Alternatively, after deploying, unlock the mapper's Admin section and click **Initialize UoM table** before running any invoice mapping. The migration creates an empty rules table and does not change existing vendors or mappings. See [packaging conversion](UOM_SETUP.md) and [bulk imports](BULK_IMPORT.md).
+
+The GR Admin Database page initializes these tables if they do not exist:
 
 - `crosswalk`
 - `vendors`
