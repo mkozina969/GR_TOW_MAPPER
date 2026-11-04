@@ -1,3 +1,5 @@
 """Streamlit page for editing the GR mapping database."""
 
-from gr_admin_app import *  # noqa: F401,F403
+from runpy import run_module
+
+run_module("gr_admin_app", run_name="__main__")
