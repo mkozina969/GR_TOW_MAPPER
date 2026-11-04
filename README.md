@@ -93,3 +93,4 @@ py ensure_neon_indexes.py --db "postgresql://USER:PASSWORD@GR_HOST/neondb?sslmod
 ```
 
 This also creates trigram indexes for fast contains search on `supplier_id` and `tow_code`.
+
