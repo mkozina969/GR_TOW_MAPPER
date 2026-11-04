@@ -98,6 +98,24 @@ class WorkflowTests(unittest.TestCase):
         self.assertFalse(list(self.app.exception))
         self.assertEqual(self.app.session_state["matched"]["tow"].tolist(), ["GLOBAL-B"])
 
+    def test_packing_list_converts_quantity_and_downloads_pallets_prn(self):
+        self.upload.seek(0)
+        self.upload.truncate()
+        self.upload.write(b"code,qty,pallet\nA,24,PALLET-A\n")
+        self.upload.seek(0)
+        self.app.selectbox(key="vendor_select").select("V1").run()
+        self.select("Quantity column", "qty")
+        self.app.button(key="btn_run_mapping").click().run()
+        self.assertFalse(list(self.app.exception))
+        self.assertEqual(self.app.session_state["matched"].iloc[0]["qty"], Decimal(8))
+        self.assertNotIn("line_value", self.app.session_state["uom_audit"][0])
+        self.app.multiselect(key="multiselect_export_cols").set_value(["tow", "qty", "pallet"]).run()
+        next(b for b in self.app.button if b.label == "Apply changes").click().run()
+        self.assertFalse(list(self.app.exception))
+        record = self.exports["dl_pallets_prn"].decode().splitlines()[0]
+        self.assertEqual(len(record), 100)
+        self.assertEqual((record[:20].strip(), record[20:50].strip(), record[50:].strip()), ("TOW-A", "8", "PALLET-A"))
+
     def test_nondivisible_blocks_export(self):
         self.upload.seek(0)
         self.upload.truncate()
